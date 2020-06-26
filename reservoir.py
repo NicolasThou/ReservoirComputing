@@ -84,7 +84,7 @@ class Reservoir:
         self.weight_out = np.random.uniform(-0.5, 0.5, (self.dim_N_y, self.dim_N_x))  # the only weights updated
         # 100% of values are different to 0
         self.weight = np.random.uniform(-0.5, 0.5, (self.dim_N_x, self.dim_N_x))
-        self.weight *= np.random.uniform(0, 1, (self.dim_N_x, self.dim_N_x)) < 1
+        self.weight *= np.random.uniform(0, 1, (self.dim_N_x, self.dim_N_x)) < 0.8
         self.weight *= self.radius/np.max(np.abs(np.linalg.eigvals(self.weight)))
 
         # Initialization at n = 0
@@ -216,13 +216,15 @@ class Reservoir:
 
         # testing
         result, signal = [], []
-        self.input = test[0]  # train[0] for sinus
-        for i in range(n2-n1):  # range(n1, n2) for sinus
+        self.input = test[0]  # train[n1] for sinus / test[0] for .npy
+        for i in range(n2-n1):  # range(n1, n2) for sinus / range(n2-n1) for .npy
+
             self.internal = (1 - self.leak) * self.internal + self.leak * self.forward()
             self.internal[0] = 1  # bias
             self.output = self.forward_out()  # prediction
+
             result.append(self.output[0])
-            signal.append(test[i][0])  # train[i][0] for sinus
+            signal.append(test[i][0])  # train[i][0] for sinus / test[i][0] for .npy
 
             # link the output to the input
             self.input = self.output
