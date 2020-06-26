@@ -198,20 +198,22 @@ class Reservoir:
         #train = sinus(2000)
         train, test = train_test_mackey_glass_npy(n1, n2)
         self.input = train[0]
-        reservoir_state, input_signal = [], []
+        reservoir_state, input_signal, output_training = [], [], []
 
         # Warmup and saving
         for i in range(n1-1):
             self.internal = (1 - self.leak) * self.internal + self.leak * self.forward()  # X vector (in reservoir)
             self.internal[0] = 1  # bias
             if i >= self.warmup:
-                reservoir_state.append(self.internal)  # X vector
-                input_signal.append(self.input)  # Y vector
-
+                reservoir_state.append(self.internal)  # X vector internal state
+                input_signal.append(self.input)  # Y vector input
+                output_training.append(self.forward_out())  # prediction
+                # update the weight out matrix along the training
+                self.weight_out = self.update(reservoir_state, input_signal)
             # Teacher Forcing
             self.input = train[i+1]
 
-        # update the weight out matrix
+        # finally update the weight out matrix
         self.weight_out = self.update(reservoir_state, input_signal)
 
         # testing
@@ -229,10 +231,10 @@ class Reservoir:
             # link the output to the input
             self.input = self.output
 
-        return signal, result
+        return signal, result, input_signal, output_training
 
 
-def plot(n1, n2, signal, prediction):
+def plot(n1, n2, signal, prediction, title, path):
 
     x = np.linspace(n1, n2, n2-n1, endpoint=False)
     x.reshape(n2-n1, 1)
@@ -242,19 +244,23 @@ def plot(n1, n2, signal, prediction):
     plt.plot(x, prediction, label='prediction', color='r')
     # Place a legend to the right of this smaller subplot.
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+    plt.title(title)
+    fig = plt.gcf()
     plt.show()
+    fig.savefig(path)
     plt.close()
 
 
 if __name__ == '__main__':
 
-    # dim_N_x, dim_N_y, dim_N_u
-    r = Reservoir(1000, 1, 1)
-
-    # training for 900 iterations, warmup 100 iteration, test 300 iterations
-    pred, x = r.training_testing(1000, 1300)
-
-    plot(1000, 1300, pred[:300], x[:300])
+    for i in range(6):
+        print(i)
+        # dim_N_x, dim_N_y, dim_N_u
+        r = Reservoir(1000, 1, 1)
+        # training for 900 iterations, warmup 100 iteration, test 300 iterations
+        pred, x, input_training, output_training = r.training_testing(1000, 1300)
+        plot(100, 999, input_training[:899], output_training[:899], 'During training', path="plot_training/img_training_{}".format(i))
+        plot(1000, 1300, pred[:300], x[:300], 'During testing', path="plot_testing/img_testingf_{}".format(i))
 
 
 
