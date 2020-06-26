@@ -40,6 +40,23 @@ def mackey_glass(N, a=0.2, b=1, c=0.9, d=17, e=10, initial=0.1):
     return y
 
 
+def training_set(N, dim_N_u):
+    """
+    Split the time series into a list of input (u(0), u(1), ..., u(n))
+
+    return ndarray of sample
+    """
+
+    time_serie = mackey_glass(N=N, a=0.2, b=1, c=0.9, d=23, e=10, initial=0.1)
+
+    # size of the time serie / dim_N_u = number of sample
+    # sample of size dim_N_u
+    X_set = np.split(time_serie, N/dim_N_u)
+    X_set = np.array(X_set)
+
+    return X_set
+
+
 def sinus(N):
     """
     Test on a simple signal, sinus function
@@ -85,28 +102,12 @@ class Reservoir:
         # 100% of values are different to 0
         self.weight = np.random.uniform(-0.5, 0.5, (self.dim_N_x, self.dim_N_x))
         self.weight *= np.random.uniform(0, 1, (self.dim_N_x, self.dim_N_x)) < 0.8
-        self.weight *= self.radius/np.max(np.abs(np.linalg.eigvals(self.weight)))
+        self.weight[1:, 1:] *= self.radius/np.max(np.abs(np.linalg.eigvals(self.weight[1:, 1:])))
 
         # Initialization at n = 0
         self.input = 0
         self.output = self.input  # y(0)
         self.internal = np.random.uniform(-1, 1, self.dim_N_x)
-
-    def training_set(self, N):
-        """
-        Split the time series into a list of input (u(0), u(1), ..., u(n))
-
-        return ndarray of sample
-        """
-
-        time_serie = mackey_glass(N=N, a=0.2, b=1, c=0.9, d=23, e=10, initial=0.1)
-
-        # size of the time serie / self.dim_N_u = number of sample
-        # sample of size dim_N_u
-        X_set = np.split(time_serie, N/self.dim_N_u)
-        X_set = np.array(X_set)
-
-        return X_set
 
     def forward_input(self):
         """
@@ -167,7 +168,6 @@ class Reservoir:
         x = np.transpose(x)
         y = np.transpose(y)
         new_W_out = (y @ x.T) @ np.linalg.inv(x @ x.T + 1e-8 * np.eye(self.dim_N_x))
-        print(np.shape(new_W_out))
 
         return new_W_out
 
@@ -194,7 +194,7 @@ class Reservoir:
 
         """
         # initialization
-        #train = self.training_set(2000)
+        #train = training_set(2000, self.dim_N_u)
         #train = sinus(2000)
         train, test = train_test_mackey_glass_npy(n1, n2)
         self.input = train[0]
@@ -239,12 +239,6 @@ def plot(n1, n2, signal, prediction):
 
     plt.figure()
     plt.plot(x, signal, label='signal', color='y')
-    # Place a legend to the right of this smaller subplot.
-    #plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-    #plt.show()
-    #plt.close()
-
-    #plt.figure()
     plt.plot(x, prediction, label='prediction', color='r')
     # Place a legend to the right of this smaller subplot.
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
